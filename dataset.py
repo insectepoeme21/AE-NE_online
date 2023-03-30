@@ -32,6 +32,10 @@ class Image_dataset(data.Dataset):
 
     def __len__(self):
         return self.dataset_length
+    
+    def getimage(self, idx):
+        image_path = os.path.join(self.dir, self.image_names[idx])
+        return cv2.imread(image_path)
 
     def __getitem__(self, idx):
         image_path = os.path.join(self.dir, self.image_names[idx])
@@ -78,7 +82,6 @@ class Image_dataset_buffer(data.Dataset):
 
     def __getitem__(self, idx):
         image_name = self.image_names[idx]
-        print(image_name, self.pos)
         image_path = os.path.join(self.dir, image_name)
         opencv_image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)  # 0-255 HWC BGR
         rgb_image = cv2.cvtColor(opencv_image, cv2.COLOR_BGR2RGB)  # 0-255 HWC RGB
@@ -88,10 +91,34 @@ class Image_dataset_buffer(data.Dataset):
         return tensor_image
     
     def position(self, position):
-        print("position ", self.pos)
         self.pos = position
         if self.pos <= self.buffer_size - 1:
             self.dataset_length = self.pos + 1
         else:
             self.dataset_length = self.buffer_size
             self.start_offset = self.pos - self.buffer_size
+
+
+class StreamSampler(data.sampler.BatchSampler):
+    def __init__(self, batch_size, buffer_size):
+        self.batch_size = batch_size
+        self.buffer_size = buffer_size
+        self.n_batch = buffer_size // batch_size
+
+        self.batch_list = self.new_batch_list()
+    
+    def __iter__(self):
+        np.random.shuffle(self.batch_list)
+        return iter(self.batch_list)
+    
+    def __len__(self):
+        return self.batch_size * self.n_batch
+    
+    def new_batch_list(self):
+        lst = np.arange(len(self))
+        np.random.shuffle(lst)
+        lst = lst.reshape((self.n_batch, self.batch_size))
+        return lst
+
+    def position(self, pos):
+        self.batch_list = self.new_batch_list() + pos - len(self)

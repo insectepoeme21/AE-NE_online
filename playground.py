@@ -17,7 +17,7 @@ args.train_model = True
 args.input_path = "/media/emeric/SSD1/emericssd/CDnet2014/dataset/baseline/highway"
 args.results_dir_path = "/media/emeric/SSD1/emericssd"
 
-args.unsupervised_mode = False
+args.unsupervised_mode = True
 args.n_iterations = 500
 args.background_complexity = False
 
