@@ -36,10 +36,19 @@ def compute_confusion_matrix(dataset_name,foreground_mask, ground_truth_input, u
 
     return tp, tn, fp, fn
 
-def compute_statistics(dataset_name,video_name,masks_path, GTs_path,roi_path = None, temporal_roi_path = None):
+def compute_statistics(dataset_name, video_name, masks_path, GTs_path, roi_path=None, temporal_roi_path=None):
 
-            mask_ids = natsort.natsorted(os.listdir(masks_path))
-            GT_ids = natsort.natsorted(os.listdir(GTs_path))
+            mask_ids = natsort.natsorted([i for i in os.listdir(masks_path) if os.path.splitext(i)[-1] == ".png"])
+            GT_ids = natsort.natsorted([i for i in os.listdir(GTs_path) if os.path.splitext(i)[-1] == ".png"])
+            
+            first_mask_idx = int(os.path.splitext(mask_ids[0])[0].replace("bin", "")) - 1
+            last_mask_idx = int(os.path.splitext(mask_ids[-1])[0].replace("bin", ""))
+            first_GT_idx = int(os.path.splitext(GT_ids[0])[0].replace("gt", "")) - 1
+            last_GT_idx = int(os.path.splitext(GT_ids[-1])[0].replace("gt", ""))
+
+            if first_mask_idx > first_GT_idx or last_GT_idx > last_mask_idx:
+                 GT_ids = GT_ids[first_mask_idx:last_mask_idx]
+            #print(mask_ids[0], mask_ids[-1], GT_ids[0], GT_ids[-1])
 
             roi_mask = None
             use_roi = False
@@ -52,8 +61,11 @@ def compute_statistics(dataset_name,video_name,masks_path, GTs_path,roi_path = N
                 start_idx = int(start_idx)
                 end_idx = int(end_idx)
                 f.close()
-                mask_ids = mask_ids[start_idx: end_idx + 1]
-                GT_ids = GT_ids[start_idx: end_idx + 1]
+                if start_idx > first_mask_idx:
+                    start = start_idx - first_mask_idx
+                    end = end_idx - first_mask_idx + 1
+                    mask_ids = mask_ids[start:end]
+                    GT_ids = GT_ids[start:end]
 
             if roi_path != None:  # for CDnet , which uses spatial roi
                 assert os.path.isfile(roi_path), f"error, no roi found at {roi_path}"
@@ -67,7 +79,7 @@ def compute_statistics(dataset_name,video_name,masks_path, GTs_path,roi_path = N
             TN = 0
             FP = 0
             FN = 0
-
+            lst = []
             for mask_id, GT_id in zip(mask_ids, GT_ids):
                 mask_path = os.path.join(masks_path, mask_id)
                 GT_path = os.path.join(GTs_path, GT_id)
@@ -79,6 +91,9 @@ def compute_statistics(dataset_name,video_name,masks_path, GTs_path,roi_path = N
                 TN += tn
                 FP += fp
                 FN += fn
+                fm = tp / (tp + 0.5 * (fp + fn))
+                lst.append(fm)
+                #print(mask_id, GT_id, tp, tn, fp, fn, fm)
 
             if TP + FP + FN > 0:
                 FM = TP / (TP + 0.5 * (FP + FN))
@@ -88,4 +103,4 @@ def compute_statistics(dataset_name,video_name,masks_path, GTs_path,roi_path = N
             recall = TP/(TP+FN)
             precision = TP/(TP+FP)
             statistics = f'video {video_name} :  FM={FM}, precision = {precision} recall = {recall} TP = {TP} TN = {TN} FP= {FP},FN= {FN} '
-            return statistics
+            return statistics, lst

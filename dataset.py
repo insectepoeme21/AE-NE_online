@@ -99,7 +99,7 @@ class Image_dataset_buffer(data.Dataset):
             self.start_offset = self.pos - self.buffer_size
 
 
-class StreamSampler(data.sampler.BatchSampler):
+class StreamSamplerFIFO(data.sampler.BatchSampler):
     def __init__(self, batch_size, buffer_size):
         self.batch_size = batch_size
         self.buffer_size = buffer_size
@@ -121,4 +121,58 @@ class StreamSampler(data.sampler.BatchSampler):
         return lst
 
     def position(self, pos):
-        self.batch_list = self.new_batch_list() + pos - len(self)
+        self.batch_list = self.new_batch_list() + pos - len(self) + 1
+        #self.batch_list[0] = np.arange(self.batch_size)*10 + 10
+        #np.random.shuffle(self.batch_list[0])
+
+
+class StreamSamplerRandom(data.sampler.BatchSampler):
+    def __init__(self, batch_size, buffer_size):
+        self.batch_size = batch_size
+        self.buffer_size = buffer_size
+        self.n_batch = buffer_size // batch_size
+
+        self.pos = buffer_size
+        self.batch_list = self.new_batch_list()
+    
+    def __iter__(self):
+        np.random.shuffle(self.batch_list)
+        return iter(self.batch_list)
+    
+    def __len__(self):
+        return self.batch_size * self.n_batch
+    
+    def new_batch_list(self):
+        lst = np.random.choice(self.pos + 1, len(self), False)
+        return lst.reshape((self.n_batch, self.batch_size))
+
+    def position(self, pos):
+        self.pos = pos
+        self.batch_list = self.new_batch_list()
+
+
+class StreamSamplerRandomWeighted(data.sampler.BatchSampler):
+    def __init__(self, batch_size, buffer_size):
+        self.batch_size = batch_size
+        self.buffer_size = buffer_size
+        self.n_batch = buffer_size // batch_size
+
+        self.pos = buffer_size
+        self.batch_list = self.new_batch_list()
+    
+    def __iter__(self):
+        np.random.shuffle(self.batch_list)
+        return iter(self.batch_list)
+    
+    def __len__(self):
+        return self.batch_size * self.n_batch
+    
+    def new_batch_list(self):
+        proba = np.arange(1, self.pos + 2)
+        proba = proba / sum(proba)
+        lst = np.random.choice(self.pos + 1, len(self), False, proba)
+        return lst.reshape((self.n_batch, self.batch_size))
+
+    def position(self, pos):
+        self.pos = pos
+        self.batch_list = self.new_batch_list()

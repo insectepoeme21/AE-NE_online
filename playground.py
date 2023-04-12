@@ -14,7 +14,7 @@ from tqdm import tqdm
 parser = main.create_parser()
 args = parser.parse_args()
 args.train_model = True
-args.input_path = "/media/emeric/SSD1/emericssd/CDnet2014/dataset/baseline/highway"
+args.input_path = "/media/emeric/SSD1/emericssd/CDnet2014/dataset/cameraJitter/badminton"
 args.results_dir_path = "/media/emeric/SSD1/emericssd"
 
 args.unsupervised_mode = True

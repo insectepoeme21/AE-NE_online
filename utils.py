@@ -14,6 +14,8 @@ def setup_background_models(device,image_height, image_width,complexity = False,
 
     netBE = models.Background_Encoder(image_height, image_width,  complexity)
     netBG = models.Background_Generator(image_height, image_width, complexity)
+    netBE = torch.nn.DataParallel(netBE, device_ids=[0, 1])
+    netBG = torch.nn.DataParallel(netBG, device_ids=[0, 1])
 
     netBE.eval()
     netBG.eval()
@@ -25,10 +27,10 @@ def setup_background_models(device,image_height, image_width,complexity = False,
         background_latents = netBE(test_image)
         background_test = netBG(background_latents)
         print(f'description background encoder')
-        print(summary(netBE, test_image.to(device), show_input=False))
+        #print(summary(netBE, test_image.to(device), show_input=False))
         print(f'description background generator')
         background_latents = netBE(test_image.to(device))
-        print(summary(netBG, background_latents, show_input=False))
+        #print(summary(netBG, background_latents, show_input=False))
 
     return netBE, netBG
 

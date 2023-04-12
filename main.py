@@ -52,7 +52,8 @@ def compute_background_and_mask_using_trained_model(args,dataset,netBE, netBG, d
 
     images = {}
     real_images = data.to(device).type(torch.cuda.FloatTensor)  # range 0-255 Nx3xHxW RGB
-    backgrounds_with_error_predictions = netBG(netBE(real_images))  # range 0-255 shape Nx4xHxW RGB+error prédiction
+    encoded_images = netBE(real_images)
+    backgrounds_with_error_predictions = netBG(encoded_images)  # range 0-255 shape Nx4xHxW RGB+error prédiction
     backgrounds = backgrounds_with_error_predictions[:, 0:3, :, :]
     error_predictions = backgrounds_with_error_predictions[:, 3, :, :]  # NHW  0-255 float
 
@@ -72,6 +73,7 @@ def compute_background_and_mask_using_trained_model(args,dataset,netBE, netBG, d
     # placeholders for masks
     masks_before_post_processing = np.zeros((batch_size, dataset.image_height, dataset.image_width))
     masks = np.zeros((batch_size, dataset.image_height, dataset.image_width))
+    #masks_after_closing = np.zeros_like(masks)
 
     for i in range(batch_size):
 
@@ -83,6 +85,7 @@ def compute_background_and_mask_using_trained_model(args,dataset,netBE, netBG, d
 
         close_kernel = np.ones((5, 5), np.uint8)
         mask = cv2.morphologyEx(mask_before_post_processing, cv2.MORPH_CLOSE, close_kernel)
+        #masks_after_closing[i, :, :] = mask
         open_kernel = np.ones((7, 7), np.uint8)
         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, open_kernel)
 
@@ -91,6 +94,8 @@ def compute_background_and_mask_using_trained_model(args,dataset,netBE, netBG, d
 
     images['thresholded'] = masks_before_post_processing
     images['masks'] = masks
+    images['encoded'] = encoded_images
+    #images['closed'] = masks_after_closing
 
     return images
 
@@ -99,7 +104,7 @@ def compute_dynamic_backgrounds_and_masks(args,video_paths):
     start_time = time.time()
     assert os.path.exists(video_paths['train_dataset']), 'wrong path for train dataset'
     assert os.path.exists(video_paths['test_dataset']), 'wrong path for test dataset'
-
+    
     if args.train_model :
         if os.path.exists(video_paths['models']):
             shutil.rmtree(video_paths['models'])

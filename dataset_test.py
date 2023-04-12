@@ -25,42 +25,33 @@ input_path = "/media/emeric/SSD1/emericssd/CDnet2014/dataset/baseline/highway"
 batch_size = 3
 buffer_size = 9
 
-"""
+
 my_x = np.array([[10*i] for i in range(100)])
 
 tensor_x = torch.Tensor(my_x)
 
 my_dataset = TensorDataset(tensor_x)
-my_dataloader = DataLoader(my_dataset, batch_sampler=dataset.StreamSampler(batch_size, buffer_size))
+my_dataloader = DataLoader(my_dataset, batch_sampler=dataset.StreamSamplerRandom(batch_size, buffer_size))
 
 
-for image in range(buffer_size, buffer_size + 3):
+for image in range(buffer_size-1, buffer_size + 8):
     my_dataloader.batch_sampler.position(image)
-    print("image", image)
+    print("image", image+1)
+    print(my_dataloader.batch_sampler.batch_list)
     for epoch in range(2):
-        print("epoch", epoch)
+        #print("epoch", epoch)
         for batch in my_dataloader:
-            print(batch)"""
+            pass #print(batch)
 
 
 """
-buffer = dataset.Image_dataset_buffer(input_path, buffer_size)
-
-loader = DataLoader(buffer, batch_size=batch_size,
-                    num_workers=1,
-                    drop_last=True, pin_memory=True,
-                    shuffle=True, persistent_workers=True)
-"""
-
-
-
 train_dataset = dataset.Image_dataset(input_path)
 
 train_dataloader = DataLoader(train_dataset,
                             num_workers=4,
                             pin_memory=True,
                             persistent_workers=True,
-                            batch_sampler=dataset.StreamSampler(batch_size, buffer_size))
+                            batch_sampler=dataset.StreamSamplerFIFO(batch_size, buffer_size))
 
 
 for i in range(buffer_size, buffer_size + 3): #len(buffer.image_names)
@@ -71,7 +62,7 @@ for i in range(buffer_size, buffer_size + 3): #len(buffer.image_names)
         for batch in train_dataloader:
             pass
         print(train_dataloader.batch_sampler.batch_list)
-
+"""
 #print(list(test_dataset))
 
 
